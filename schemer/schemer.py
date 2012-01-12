@@ -157,15 +157,15 @@ class GUI:
     self.defaultLanguageId = 'c'
     self.defaultLanguageName = 'C'
     self.defaultLanguage = self.languageManager.get_language(self.defaultLanguageId)
-    
-    # TODO figure out how to deal with a non existant buffer
-    bufferLanguage = geditView.get_buffer().get_language()
 
     # guess the language from the current buffer
-    if bufferLanguage and bufferLanguage.get_id() in languages:
-      self.defaultLanguageId = bufferLanguage.get_id()
-      self.defaultLanguageName = bufferLanguage.get_name()
-      self.defaultLanguage = bufferLanguage
+    if geditView.get_buffer():
+      bufferLanguage = geditView.get_buffer().get_language()
+
+      if bufferLanguage and bufferLanguage.get_id() in languages:
+        self.defaultLanguageId = bufferLanguage.get_id()
+        self.defaultLanguageName = bufferLanguage.get_name()
+        self.defaultLanguage = bufferLanguage
 
     self.currentLanguageId = self.defaultLanguageId
     self.currentLanguadeName = self.defaultLanguageName
@@ -174,7 +174,9 @@ class GUI:
     self.schemeManager.append_search_path(tempfile.gettempdir())
 
     self.origSchemeFile = None
-    self.load_scheme(geditView.get_buffer().get_style_scheme().get_id())
+
+    # TODO figure out how to deal with a non existant buffer
+    self.load_scheme(geditView.get_buffer().get_style_scheme().get_filename())
     
     for langStyleId in self.guiStyleIds:
       self.liststoreStyles.append([langStyleId])
@@ -269,6 +271,7 @@ class GUI:
       else:
 
         # TODO as of gedit 3.2.5 there is no way to refresh the Gedit buffer
+        # https://bugzilla.gnome.org/show_bug.cgi?id=667706
         updatedScheme = self.schemeManager.get_scheme(self.entryId.get_text())
         self.schemeManager.force_rescan()
 
@@ -304,8 +307,8 @@ class GUI:
       xmlTree = ET.parse(fp)
       fp.close()
 
-      # TODO explicitly parse the 'style-scheme' instead of assuming root is correct
-      thisScheme = self.schemeManager.get_scheme(xmlTree.getroot().attrib['id'])
+      if xmlTree.getroot().tag == 'style-scheme':
+        thisScheme = self.schemeManager.get_scheme(xmlTree.getroot().attrib['id'])
       
       if thisScheme == None:
         return False
@@ -431,16 +434,6 @@ class GUI:
     return True
 
     
-#   def mkdir_p(self, path): # should make static
-#     try:
-#       os.makedirs(path)
-#     except OSError as exc: # Python >2.5
-# #        if exc.errno == errno.EEXIST:
-# #            pass
-# #        else: raise
-#       pass
-
-    
   def on_reset_clicked(self, param):
     
     if self.selectedStyleId in self.dictAllStyles:
@@ -461,8 +454,6 @@ class GUI:
       self.colorbuttonBackground.set_sensitive(False)
       self.dictAllStyles[self.selectedStyleId].background = None;
       self.update_sample_view()
-      
-      # TODO decide what to do with orphaned styles (ones with no properties set)
       
   def on_foreground_toggled(self, param):
     
