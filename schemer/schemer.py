@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# GeditSchemer
+# Gedit Scheme Editor
 # https://github.com/jonocodes/GeditSchemer
 #
 # Copyright (C) Jono Finger 2012 <jono@foodnotblogs.com>
@@ -24,7 +24,7 @@ import collections
 import tempfile
 from xml.etree import ElementTree as ET
 
-from gi.repository import Gtk, GdkPixbuf, Gdk, GtkSource
+from gi.repository import Gtk, GdkPixbuf, Gdk, GtkSource, Gio
 
 from languages import samples
 
@@ -41,7 +41,7 @@ class Props:
     self.strikethrough = False
     self.underline = False
     
-  def fromGtkSourceStyle(self, gtkStyle):
+  def from_gtk_source_style(self, gtkStyle):
   
     self.background = gtkStyle.props.background
     self.foreground = gtkStyle.props.foreground
@@ -58,11 +58,6 @@ class Props:
       
     if self.background and self.background[0] != '#':
       self.background = '#' + self.background
-    
-  def toString(self):
-    return ('FG=%s BG=%s Ital=%s Bold=%s Strike=%s Under=%s' %
-      (self.foreground, self.background, self.italic, self.bold,
-      self.strikethrough,self.underline))
     
 
 class GUI:
@@ -159,7 +154,7 @@ class GUI:
     self.defaultLanguage = self.languageManager.get_language(self.defaultLanguageId)
 
     # guess the language from the current buffer
-    if geditView.get_buffer():
+    if geditView:
       bufferLanguage = geditView.get_buffer().get_language()
 
       if bufferLanguage and bufferLanguage.get_id() in languages:
@@ -175,8 +170,10 @@ class GUI:
 
     self.origSchemeFile = None
 
-    # TODO figure out how to deal with a non existant buffer
-    self.load_scheme(geditView.get_buffer().get_style_scheme().get_filename())
+    if geditView: # if there is a view open, get the scheme from the buffer
+      self.load_scheme(geditView.get_buffer().get_style_scheme().get_filename())
+    else: # is there is no view, check gsettings
+      self.load_scheme(Gio.Settings('org.gnome.gedit.preferences.editor').get_string('scheme'))
     
     for langStyleId in self.guiStyleIds:
       self.liststoreStyles.append([langStyleId])
@@ -217,7 +214,6 @@ class GUI:
   def destroy(self, window):
     self.window.destroy()
     
-
   def on_save_clicked(self, param):
 
     inFile = self.origSchemeFile
@@ -260,14 +256,16 @@ class GUI:
               '\n\nYou not have permission to overwrite the scheme you have choosen.' \
               '\nInstead a copy will be created.' \
               '\n\nPlease be sure to choose a Name and ID that are not already in use.\n'
-            messagedialog(Gtk.MessageType.ERROR, text, parent=self.window, buttons=Gtk.ButtonsType.NONE,
+            message_dialog(Gtk.MessageType.ERROR, text, parent=self.window,
+              buttons=Gtk.ButtonsType.NONE,
               additional_buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
 
             return
 
       if not self.write_scheme(outFile, self.entryId.get_text()):
-        messagedialog(Gtk.MessageType.ERROR, 'Error saving theme', parent=self.window, buttons=Gtk.ButtonsType.NONE,
-              additional_buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
+        message_dialog(Gtk.MessageType.ERROR, 'Error saving theme',
+          parent=self.window, buttons=Gtk.ButtonsType.NONE,
+          additional_buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
       else:
 
         # TODO as of gedit 3.2.5 there is no way to refresh the Gedit buffer
@@ -275,23 +273,24 @@ class GUI:
         updatedScheme = self.schemeManager.get_scheme(self.entryId.get_text())
         self.schemeManager.force_rescan()
 
+        # actually it is going to take more then refreshing since ID could change
         # viewManager = Gedit.View.StyleSchemeManager()
         # viewManager.force_rescan()
         # self.schemeManager.get_default().force_rescan()
         self.geditView.get_buffer().set_style_scheme(updatedScheme)
 
         # for now we tell the user to restart the program
-        messagedialog(Gtk.MessageType.INFO, 'Restart Gedit to use the updated scheme', 
+        message_dialog(Gtk.MessageType.INFO,
+              'Restart Gedit to use the updated scheme', 
               parent=self.window, buttons=Gtk.ButtonsType.NONE,
               additional_buttons=(Gtk.STOCK_OK, Gtk.ResponseType.OK))
 
     else:
-      messagedialog(Gtk.MessageType.ERROR, 'Error saving theme', buttons=Gtk.ButtonsType.NONE,
-            parent=self.window, additional_buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
-      pass
+      message_dialog(Gtk.MessageType.ERROR, 'Error saving theme',
+        buttons=Gtk.ButtonsType.NONE, parent=self.window,
+        additional_buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
 
     self.window.destroy()
-
 
   def load_scheme(self, schemeIdOrFile):
     """ Load a scheme from a file or an existing scheme ID """
@@ -318,8 +317,9 @@ class GUI:
       if testFilename != schemeIdOrFile:
         # there must have been some conflict, since it opened the wrong file
 
-        text = '<span weight="bold" size="larger">There was a problem opening the file</span>\n\nYou appear to have schemes with the same IDs in different directories\n'
-        messagedialog(Gtk.MessageType.ERROR, text,
+        text = '<span weight="bold" size="larger">There was a problem opening the file</span>' \
+          '\n\nYou appear to have schemes with the same IDs in different directories\n'
+        message_dialog(Gtk.MessageType.ERROR, text,
           parent=self.window, buttons=Gtk.ButtonsType.NONE,
           additional_buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
         
@@ -356,7 +356,7 @@ class GUI:
     for styleElement in styleElements:
       thisStyle = self.currentScheme.get_style(styleElement.attrib['name'])
       styleProps = Props()
-      styleProps.fromGtkSourceStyle(thisStyle)
+      styleProps.from_gtk_source_style(thisStyle)
       self.dictAllStyles[styleElement.attrib['name']] = styleProps;
             
     self.sourceBuffer.set_style_scheme(self.currentScheme);
@@ -432,7 +432,6 @@ class GUI:
       return False
 
     return True
-
     
   def on_reset_clicked(self, param):
     
@@ -605,7 +604,7 @@ class GUI:
         self.labelSample.set_text(self.defaultLanguageName + ' sample')
 
 
-def messagedialog(dialog_type, short, long=None, parent=None,
+def message_dialog(dialog_type, shortMsg, longMsg=None, parent=None,
                   buttons=Gtk.ButtonsType.OK, additional_buttons=None):
 
   d = Gtk.MessageDialog(parent=parent, flags=Gtk.DialogFlags.MODAL,
@@ -614,16 +613,16 @@ def messagedialog(dialog_type, short, long=None, parent=None,
   if additional_buttons:
     d.add_buttons(*additional_buttons)
 
-  d.set_markup(short)
+  d.set_markup(shortMsg)
 
-  if long:
-    if isinstance(long, Gtk.Widget):
-      widget = long
-    elif isinstance(long, str):
+  if longMsg:
+    if isinstance(longMsg, Gtk.Widget):
+      widget = longMsg
+    elif isinstance(longMsg, str):
       widget = Gtk.Label()
-      widget.set_markup(long)
+      widget.set_markup(longMsg)
     else:
-      raise TypeError('"long" must be a Gtk.Widget or a string')
+      raise TypeError('"longMsg" must be a Gtk.Widget or a string')
     
     expander = Gtk.Expander(label = 'Click here for details')
     expander.set_border_width(6)
@@ -634,3 +633,4 @@ def messagedialog(dialog_type, short, long=None, parent=None,
   response = d.run()
   d.destroy()
   return response
+ 

@@ -1,4 +1,23 @@
 #!/usr/bin/python
+#
+# Gedit Scheme Editor
+# https://github.com/jonocodes/GeditSchemer
+#
+# Copyright (C) Jono Finger 2012 <jono@foodnotblogs.com>
+# 
+# The program is free software: you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# The program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 
 from gi.repository import GObject, Gedit, Gtk
 import os
@@ -9,14 +28,13 @@ UI_XML = """<ui>
 <menubar name="MenuBar">
   <menu name="ToolsMenu" action="Tools">
     <placeholder name="ToolsOps_3">
-    <menuitem name="menuItemLaunchGui" action="LaunchGuiAction"/>
+      <menuitem name="menuItemLaunchGui" action="LaunchGuiAction"/>
     </placeholder>
   </menu>
 </menubar>
 </ui>"""
 
-class AppActivatable(GObject.Object, Gedit.WindowActivatable):
-  __gtype_name__ = "SchemerWindowActivatable"
+class WindowActivatable(GObject.Object, Gedit.WindowActivatable):
 
   window = GObject.property(type=Gedit.Window)
 
