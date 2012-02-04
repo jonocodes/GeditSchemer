@@ -24,7 +24,7 @@ import collections
 import tempfile
 from xml.etree import ElementTree as ET
 
-from gi.repository import Gtk, GdkPixbuf, Gdk, GtkSource, Gio
+from gi.repository import Gtk, GdkPixbuf, Gdk, GtkSource, Gio, GLib
 
 from languages import samples
 
@@ -53,16 +53,17 @@ class Props:
     # here we make sure every color starts with a hash
     # maybe this is a workaround for a bug that I should file
     # or maybe this is a false assumption
-    if self.foreground and self.foreground[0] != '#':
-      self.foreground = '#' + self.foreground
+
+    # if self.foreground and self.foreground[0] != '#':
+    #   self.foreground = '#' + self.foreground
       
-    if self.background and self.background[0] != '#':
-      self.background = '#' + self.background
+    # if self.background and self.background[0] != '#':
+    #   self.background = '#' + self.background
     
 
 class GUI:
   
-  def __init__(self, geditView):
+  def __init__(self, geditApp):
 
     # constants
 
@@ -120,7 +121,7 @@ class GUI:
     self.colorbuttonBackground.connect('color-set', self.on_style_changed)
     self.colorbuttonForeground.connect('color-set', self.on_style_changed)
 
-    self.builder.get_object('buttonCancel').connect('clicked', self.closeWindow)
+    self.builder.get_object('buttonCancel').connect('clicked', self.on_cancel_clicked)
     self.builder.get_object('buttonSave').connect('clicked', self.on_save_clicked)
     
     self.togglebuttonItalicHandler = self.togglebuttonItalic.connect(
@@ -139,39 +140,46 @@ class GUI:
     
     self.resetButton.connect('clicked', self.on_reset_clicked)
     
-    self.schemeManager = GtkSource.StyleSchemeManager()
+    self.schemeManager = GtkSource.StyleSchemeManager().get_default() # requires gedit 3.3.3 or newer
     self.languageManager = GtkSource.LanguageManager()
-    
+
     self.dictAllStyles = collections.OrderedDict()
     
     languages = self.languageManager.get_language_ids()
     languages.sort()
 
-    self.geditView = geditView
+    self.geditApp = geditApp
+    self.geditView = geditApp.get_default().get_active_window().get_active_view()
 
     self.defaultLanguageId = 'c'
     self.defaultLanguageName = 'C'
     self.defaultLanguage = self.languageManager.get_language(self.defaultLanguageId)
 
+    self.selectedLanguageId = self.defaultLanguageId
+    self.selectedLanguageName = self.defaultLanguageName
+    self.selectedLanguage = self.defaultLanguage
+
+    self.bufferLanguageId = self.defaultLanguageId
+    self.bufferLanguageName = self.defaultLanguageName
+    self.bufferLanguage = self.defaultLanguage
+
     # guess the language from the current buffer
-    if geditView:
-      bufferLanguage = geditView.get_buffer().get_language()
+    if self.geditView:
+      bufferLanguage = self.geditView.get_buffer().get_language()
 
       if bufferLanguage and bufferLanguage.get_id() in languages:
-        self.defaultLanguageId = bufferLanguage.get_id()
-        self.defaultLanguageName = bufferLanguage.get_name()
-        self.defaultLanguage = bufferLanguage
+        self.bufferLanguageId = bufferLanguage.get_id()
+        self.bufferLanguageName = bufferLanguage.get_name()
+        self.bufferLanguage = bufferLanguage
 
-    self.currentLanguageId = self.defaultLanguageId
-    self.currentLanguadeName = self.defaultLanguageName
-        
     # watch temp directory to help the sample viewer
+    self.schemeManagerOrigSearchPath = self.schemeManager.get_search_path()
     self.schemeManager.append_search_path(tempfile.gettempdir())
 
     self.origSchemeFile = None
 
-    if geditView: # if there is a view open, get the scheme from the buffer
-      self.load_scheme(geditView.get_buffer().get_style_scheme().get_filename())
+    if self.geditView: # if there is a view open, get the scheme from the buffer
+      self.load_scheme(self.geditView.get_buffer().get_style_scheme().get_filename())
     else: # is there is no view, check gsettings
       self.load_scheme(Gio.Settings('org.gnome.gedit.preferences.editor').get_string('scheme'))
     
@@ -208,12 +216,13 @@ class GUI:
     model = self.treeviewStyles.get_model()
     self.selectedStyleId = model[treeIter][0]
   
-  def closeWindow(self, data):
-    self.window.destroy()
-
   def destroy(self, window):
     self.window.destroy()
     
+  def on_cancel_clicked(self, param):
+    self.schemeManager.set_search_path(self.schemeManagerOrigSearchPath)
+    self.window.destroy()
+
   def on_save_clicked(self, param):
 
     inFile = self.origSchemeFile
@@ -227,13 +236,11 @@ class GUI:
     else:
       possibleDirs = self.schemeManager.get_search_path()
 
-      for thisDir in possibleDirs:
+      # attempt to save to ~/.local/share/gedit/styles/
+      thisDir = os.path.join(GLib.get_user_data_dir(), "gedit", "styles")
 
-        if thisDir == tempDirectory:
-          continue
-
-        # create the directory if it does not exist
-        if not os.path.isdir(thisDir):
+      if thisDir in possibleDirs:
+        if os.path.isdir(thisDir):
           try:
             os.makedirs(thisDir)
           except:
@@ -241,7 +248,24 @@ class GUI:
 
         if (os.access(thisDir, os.W_OK)):
           outFile = os.path.join(thisDir, self.entryId.get_text() + '.xml')
-          break
+          
+      # if we cant save it there, save it where ever we have permission to save it
+      if not outFile:
+        for thisDir in possibleDirs:
+
+          if thisDir == tempDirectory:
+            continue
+
+          # create the directory if it does not exist
+          if not os.path.isdir(thisDir):
+            try:
+              os.makedirs(thisDir)
+            except:
+              pass
+
+          if (os.access(thisDir, os.W_OK)):
+            outFile = os.path.join(thisDir, self.entryId.get_text() + '.xml')
+            break
 
     if outFile:
 
@@ -262,34 +286,28 @@ class GUI:
 
             return
 
-      if not self.write_scheme(outFile, self.entryId.get_text()):
+      if not self.write_scheme(outFile, self.entryId.get_text(), self.entryName.get_text()):
         message_dialog(Gtk.MessageType.ERROR, 'Error saving theme',
           parent=self.window, buttons=Gtk.ButtonsType.NONE,
           additional_buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
       else:
 
-        # TODO as of gedit 3.2.5 there is no way to refresh the Gedit buffer
-        # https://bugzilla.gnome.org/show_bug.cgi?id=667706
-        updatedScheme = self.schemeManager.get_scheme(self.entryId.get_text())
         self.schemeManager.force_rescan()
+        updatedScheme = self.schemeManager.get_scheme(self.entryId.get_text())
 
-        # actually it is going to take more then refreshing since ID could change
-        # viewManager = Gedit.View.StyleSchemeManager()
-        # viewManager.force_rescan()
-        # self.schemeManager.get_default().force_rescan()
-        self.geditView.get_buffer().set_style_scheme(updatedScheme)
+        s = Gio.Settings('org.gnome.gedit.preferences.editor')
+        s.set_string('scheme', self.entryId.get_text())
 
-        # for now we tell the user to restart the program
-        message_dialog(Gtk.MessageType.INFO,
-              'Restart Gedit to use the updated scheme', 
-              parent=self.window, buttons=Gtk.ButtonsType.NONE,
-              additional_buttons=(Gtk.STOCK_OK, Gtk.ResponseType.OK))
+        # update the view in all open documents
+        for thisDoc in self.geditApp.get_default().get_documents():
+          thisDoc.set_style_scheme(updatedScheme)
 
     else:
       message_dialog(Gtk.MessageType.ERROR, 'Error saving theme',
         buttons=Gtk.ButtonsType.NONE, parent=self.window,
         additional_buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
 
+    self.schemeManager.set_search_path(self.schemeManagerOrigSearchPath)
     self.window.destroy()
 
   def load_scheme(self, schemeIdOrFile):
@@ -363,6 +381,7 @@ class GUI:
     
     # set up temp file so the sample view can be updated
     self.tempSchemeId = thisScheme.get_id() + '_temp'
+    self.tempSchemeName = thisScheme.get_name() + '_temp'
     self.tempSchemeFile = tempfile.gettempdir() + '/' + self.tempSchemeId + '.xml'
     
     return True
@@ -389,7 +408,7 @@ class GUI:
     """
     
     # write it to disk
-    self.write_scheme(self.tempSchemeFile, self.tempSchemeId)
+    self.write_scheme(self.tempSchemeFile, self.tempSchemeId, self.tempSchemeName)
     
     # and reload it from disk
     self.schemeManager.force_rescan()
@@ -397,15 +416,14 @@ class GUI:
     newScheme = self.schemeManager.get_scheme(self.tempSchemeId)
     self.sourceBuffer.set_style_scheme(newScheme);
     
-  def write_scheme(self, location, schemeId):
+  def write_scheme(self, location, schemeId, schemeName):
     """Write the scheme to disk
     
     location -- the file location to write to
     schemeId -- the ID of the scheme
     """
 
-    output = '<style-scheme name="'+ self.entryName.get_text() \
-      + '" id="'+ schemeId +'" version="1.0">\n'
+    output = '<style-scheme name="'+ schemeName + '" id="'+ schemeId +'" version="1.0">\n'
     
     output += '  <author>'+ self.entryAuthor.get_text() +'</author>\n'
     output += '  <description>'+ self.entryDescription.get_text() +'</description>\n\n'
@@ -502,10 +520,10 @@ class GUI:
     if treeiter == None:
       return
     
-    self.selectedStyleId = self.currentLanguageId + ':' + model[treeiter][0]
+    self.selectedStyleId = self.selectedLanguageId + ':' + model[treeiter][0]
 
     # handle the special case for GUI styles
-    if self.selectedStyleId not in self.dictAllStyles and self.currentLanguageId == 'def':
+    if self.selectedStyleId not in self.dictAllStyles and self.selectedLanguageId == 'def':
       self.selectedStyleId = model[treeiter][0]
     
     # block all the toggle handlers so they dont get triggered
@@ -565,22 +583,22 @@ class GUI:
     tree_iter = combo.get_active_iter()
     if tree_iter != None:
       model = combo.get_model()
-      self.currentLanguageName = model[tree_iter][0]
-      self.currentLanguageId = self.langMapNameToId[self.currentLanguageName]
+      self.selectedLanguageName = model[tree_iter][0]
+      self.selectedLanguageId = self.langMapNameToId[self.selectedLanguageName]
       
       self.liststoreStyles.clear()
       
       # remove the language namespace thing from the style name
-      removeLen = len(self.currentLanguageId) + 1
+      removeLen = len(self.selectedLanguageId) + 1
     
-      thisLanguage = self.languageManager.get_language(self.currentLanguageId)
+      thisLanguage = self.languageManager.get_language(self.selectedLanguageId)
 
       if thisLanguage != None:
         styleIds = thisLanguage.get_style_ids()
         
         styleIds.sort() # make the styles list alphabetical
         
-        if self.currentLanguageId == 'def':
+        if self.selectedLanguageId == 'def':
           for styleId in self.guiStyleIds:
             self.liststoreStyles.append([styleId])
         
@@ -594,10 +612,14 @@ class GUI:
       self.selectedStyleId = model[treeIter][0]
       
       # update the sample view
-      if self.currentLanguageId in samples:
+      if self.selectedLanguageId in samples:
         self.sourceBuffer.set_language(thisLanguage);
-        self.sourceBuffer.set_text(samples[self.currentLanguageId])
-        self.labelSample.set_text(self.currentLanguageName + ' sample')
+        self.sourceBuffer.set_text(samples[self.selectedLanguageId])
+        self.labelSample.set_text(self.selectedLanguageName + ' sample')
+      elif self.bufferLanguageId in samples:
+        self.sourceBuffer.set_language(self.bufferLanguage)
+        self.sourceBuffer.set_text(samples[self.bufferLanguageId])
+        self.labelSample.set_text(self.bufferLanguageName + ' sample')
       else:
         self.sourceBuffer.set_language(self.defaultLanguage);
         self.sourceBuffer.set_text(samples[self.defaultLanguageId])

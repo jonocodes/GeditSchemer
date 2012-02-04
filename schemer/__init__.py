@@ -26,8 +26,8 @@ from schemer import GUI
 
 UI_XML = """<ui>
 <menubar name="MenuBar">
-  <menu name="ToolsMenu" action="Tools">
-    <placeholder name="ToolsOps_3">
+  <menu name="EditMenu" action="Edit">
+    <placeholder name="EditOps_5">
       <menuitem name="menuItemLaunchGui" action="LaunchGuiAction"/>
     </placeholder>
   </menu>
@@ -42,10 +42,11 @@ class WindowActivatable(GObject.Object, Gedit.WindowActivatable):
     GObject.Object.__init__(self)
 
   def _add_ui(self):
+
     manager = self.window.get_ui_manager()
     self._actions = Gtk.ActionGroup("SchemerActions")
     self._actions.add_actions([
-      ('LaunchGuiAction', Gtk.STOCK_INFO, "Edit current scheme", 
+      ('LaunchGuiAction', Gtk.STOCK_INFO, "Color Scheme Editor", 
         None, "Launch color scheme editor for the current loaded scheme", 
         self.on_example_action_activate),
     ])
@@ -54,7 +55,7 @@ class WindowActivatable(GObject.Object, Gedit.WindowActivatable):
     manager.ensure_update()
 
   def on_example_action_activate(self, action, data=None):
-    schemer.GUI(self.window.get_active_view())
+    schemer.GUI(Gedit.App)
 
   def do_activate(self):
     self._add_ui()
