@@ -1,9 +1,9 @@
 [Plugin]
-Loader=python
+Loader=python3
 Module=schemer
 IAge=3
-Name=Scheme Editor
+Name=Color Scheme Editor
 Description=Source code color scheme editor
 Authors=Jono <jono@foodnotblogs.com>
-Copyright=Copyright © 2012 Jono Finger
+Copyright=Copyright © 2013 Jono Finger
 Website=https://github.com/jonocodes/GeditSchemer

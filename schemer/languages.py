@@ -3,7 +3,7 @@
 # Gedit Scheme Editor
 # https://github.com/jonocodes/GeditSchemer
 #
-# Copyright (C) Jono Finger 2012 <jono@foodnotblogs.com>
+# Copyright (C) Jono Finger 2013 <jono@foodnotblogs.com>
 # 
 # The program is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the

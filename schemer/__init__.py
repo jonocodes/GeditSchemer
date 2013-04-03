@@ -22,7 +22,7 @@
 from gi.repository import GObject, Gedit, Gtk
 import os
 
-from schemer import GUI
+from .schemer import GUI
 
 UI_XML = """<ui>
 <menubar name="MenuBar">
@@ -55,7 +55,7 @@ class WindowActivatable(GObject.Object, Gedit.WindowActivatable):
     manager.ensure_update()
 
   def on_example_action_activate(self, action, data=None):
-    schemer.GUI(Gedit.App)
+    schemer.GUI(Gedit.App, os.path.dirname(__file__))
 
   def do_activate(self):
     self._add_ui()

@@ -3,7 +3,7 @@
 # Gedit Scheme Editor
 # https://github.com/jonocodes/GeditSchemer
 #
-# Copyright (C) Jono Finger 2012 <jono@foodnotblogs.com>
+# Copyright (C) Jono Finger 2013 <jono@foodnotblogs.com>
 # 
 # The program is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
@@ -26,7 +26,7 @@ from xml.etree import ElementTree as ET
 
 from gi.repository import Gtk, GdkPixbuf, Gdk, GtkSource, Gio, GLib
 
-from languages import samples
+from .languages import samples
 
 
 # Holds style properties for a GtkSourceStyle element
@@ -63,7 +63,7 @@ class Props:
 
 class GUI:
   
-  def __init__(self, geditApp):
+  def __init__(self, geditApp, uiDir):
 
     # constants
 
@@ -80,7 +80,7 @@ class GUI:
 
     self.builder = Gtk.Builder()
 
-    uiFile = os.path.join(os.path.dirname(__file__), 'schemer.ui')
+    uiFile = os.path.join(uiDir, 'schemer.ui')
 
     if (os.path.isfile(uiFile)):
       self.builder.add_from_file(uiFile)
@@ -428,7 +428,7 @@ class GUI:
     output += '  <author>'+ self.entryAuthor.get_text() +'</author>\n'
     output += '  <description>'+ self.entryDescription.get_text() +'</description>\n\n'
     
-    for k, v in self.dictAllStyles.items():
+    for k, v in list(self.dictAllStyles.items()):
       output += '  <style name="'+k+'"\t'
       
       if (v.foreground): output += 'foreground="'+ v.foreground +'" '
