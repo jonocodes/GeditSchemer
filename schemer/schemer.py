@@ -277,7 +277,7 @@ class GUI:
           if self.entryId.get_text() == thisSchemeId or self.entryName.get_text() == self.schemeManager.get_scheme(thisSchemeId).get_name():
 
             text = '<span weight="bold" size="larger">There was a problem saving the scheme</span>' \
-              '\n\nYou not have permission to overwrite the scheme you have choosen.' \
+              '\n\nYou do not have permission to overwrite the scheme you have choosen.' \
               '\nInstead a copy will be created.' \
               '\n\nPlease be sure to choose a Name and ID that are not already in use.\n'
             message_dialog(Gtk.MessageType.ERROR, text, parent=self.window,

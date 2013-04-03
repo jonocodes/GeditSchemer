@@ -3,7 +3,7 @@
 # Gedit Scheme Editor
 # https://github.com/jonocodes/GeditSchemer
 #
-# Copyright (C) Jono Finger 2012 <jono@foodnotblogs.com>
+# Copyright (C) Jono Finger 2013 <jono@foodnotblogs.com>
 # 
 # The program is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
@@ -55,7 +55,7 @@ class WindowActivatable(GObject.Object, Gedit.WindowActivatable):
     manager.ensure_update()
 
   def on_example_action_activate(self, action, data=None):
-    schemer.GUI(Gedit.App, os.path.dirname(__file__))
+    schemer.GUI(Gedit.App, os.path.join(self.plugin_info.get_data_dir(), 'ui'))
 
   def do_activate(self):
     self._add_ui()
