@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
+  <!-- interface-requires gtk+ 3.0 -->
   <!-- interface-requires gtksourceview 3.0 -->
   <object class="GtkListStore" id="liststoreLanguages">
     <columns>
@@ -16,7 +17,7 @@
   <object class="GtkWindow" id="window">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <property name="title" translatable="yes">Scheme Editor</property>
+    <property name="title" translatable="yes">Color Scheme Editor</property>
     <property name="window_position">center</property>
     <property name="default_width">700</property>
     <property name="default_height">550</property>
@@ -25,6 +26,10 @@
       <object class="GtkVBox" id="vbox20">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
+        <property name="margin_left">5</property>
+        <property name="margin_right">5</property>
+        <property name="margin_top">8</property>
+        <property name="margin_bottom">2</property>
         <property name="spacing">2</property>
         <child>
           <object class="GtkVBox" id="vbox21">
@@ -126,14 +131,12 @@
                                 <property name="homogeneous">True</property>
                                 <child>
                                   <object class="GtkToggleButton" id="togglebuttonBold">
-                                    <property name="use_action_appearance">False</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">True</property>
                                     <property name="has_tooltip">True</property>
                                     <property name="tooltip_markup" translatable="yes">Bold</property>
                                     <property name="tooltip_text" translatable="yes">Bold</property>
-                                    <property name="use_action_appearance">False</property>
                                     <property name="relief">none</property>
                                     <child>
                                       <object class="GtkImage" id="image30">
@@ -151,14 +154,12 @@
                                 </child>
                                 <child>
                                   <object class="GtkToggleButton" id="togglebuttonItalic">
-                                    <property name="use_action_appearance">False</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">True</property>
                                     <property name="has_tooltip">True</property>
                                     <property name="tooltip_markup" translatable="yes">Italic</property>
                                     <property name="tooltip_text" translatable="yes">Italic</property>
-                                    <property name="use_action_appearance">False</property>
                                     <property name="relief">none</property>
                                     <child>
                                       <object class="GtkImage" id="image31">
@@ -176,14 +177,12 @@
                                 </child>
                                 <child>
                                   <object class="GtkToggleButton" id="togglebuttonUnderline">
-                                    <property name="use_action_appearance">False</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">True</property>
                                     <property name="has_tooltip">True</property>
                                     <property name="tooltip_markup" translatable="yes">Underline</property>
                                     <property name="tooltip_text" translatable="yes">Underline</property>
-                                    <property name="use_action_appearance">False</property>
                                     <property name="relief">none</property>
                                     <child>
                                       <object class="GtkImage" id="image32">
@@ -201,14 +200,12 @@
                                 </child>
                                 <child>
                                   <object class="GtkToggleButton" id="togglebuttonStrikethrough">
-                                    <property name="use_action_appearance">False</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">True</property>
                                     <property name="has_tooltip">True</property>
                                     <property name="tooltip_markup" translatable="yes">Strikethrough</property>
                                     <property name="tooltip_text" translatable="yes">Strikethrough</property>
-                                    <property name="use_action_appearance">False</property>
                                     <property name="relief">none</property>
                                     <child>
                                       <object class="GtkImage" id="image33">
@@ -241,11 +238,9 @@
                                 <property name="row_spacing">12</property>
                                 <child>
                                   <object class="GtkColorButton" id="colorbuttonBackground">
-                                    <property name="use_action_appearance">False</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">True</property>
-                                    <property name="use_action_appearance">False</property>
                                     <property name="title" translatable="yes">Pick the background color</property>
                                   </object>
                                   <packing>
@@ -253,35 +248,31 @@
                                     <property name="right_attach">2</property>
                                     <property name="top_attach">1</property>
                                     <property name="bottom_attach">2</property>
-                                    <property name="x_options"></property>
-                                    <property name="y_options"></property>
+                                    <property name="x_options"/>
+                                    <property name="y_options"/>
                                   </packing>
                                 </child>
                                 <child>
                                   <object class="GtkColorButton" id="colorbuttonForeground">
-                                    <property name="use_action_appearance">False</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">True</property>
-                                    <property name="use_action_appearance">False</property>
                                     <property name="title" translatable="yes">Pick the foreground color</property>
                                   </object>
                                   <packing>
                                     <property name="left_attach">1</property>
                                     <property name="right_attach">2</property>
-                                    <property name="x_options"></property>
-                                    <property name="y_options"></property>
+                                    <property name="x_options"/>
+                                    <property name="y_options"/>
                                   </packing>
                                 </child>
                                 <child>
                                   <object class="GtkCheckButton" id="checkbuttonBackground">
                                     <property name="label" translatable="yes">_Background</property>
-                                    <property name="use_action_appearance">False</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">False</property>
                                     <property name="halign">start</property>
-                                    <property name="use_action_appearance">False</property>
                                     <property name="use_underline">True</property>
                                     <property name="xalign">0</property>
                                     <property name="draw_indicator">True</property>
@@ -289,26 +280,24 @@
                                   <packing>
                                     <property name="top_attach">1</property>
                                     <property name="bottom_attach">2</property>
-                                    <property name="x_options"></property>
-                                    <property name="y_options"></property>
+                                    <property name="x_options"/>
+                                    <property name="y_options"/>
                                   </packing>
                                 </child>
                                 <child>
                                   <object class="GtkCheckButton" id="checkbuttonForeground">
                                     <property name="label" translatable="yes">_Foreground</property>
-                                    <property name="use_action_appearance">False</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">False</property>
                                     <property name="halign">start</property>
-                                    <property name="use_action_appearance">False</property>
                                     <property name="use_underline">True</property>
                                     <property name="xalign">0</property>
                                     <property name="draw_indicator">True</property>
                                   </object>
                                   <packing>
-                                    <property name="x_options"></property>
-                                    <property name="y_options"></property>
+                                    <property name="x_options"/>
+                                    <property name="y_options"/>
                                   </packing>
                                 </child>
                               </object>
@@ -320,11 +309,9 @@
                             </child>
                             <child>
                               <object class="GtkButton" id="resetButton">
-                                <property name="use_action_appearance">False</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
-                                <property name="use_action_appearance">False</property>
                                 <child>
                                   <object class="GtkAlignment" id="alignment7">
                                     <property name="visible">True</property>
@@ -588,11 +575,9 @@
             <child>
               <object class="GtkButton" id="buttonCancel">
                 <property name="label">gtk-cancel</property>
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
               </object>
               <packing>
@@ -604,11 +589,9 @@
             <child>
               <object class="GtkButton" id="buttonSave">
                 <property name="label">gtk-save</property>
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
               </object>
               <packing>
