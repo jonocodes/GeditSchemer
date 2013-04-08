@@ -41,6 +41,16 @@ class Props:
     self.strikethrough = False
     self.underline = False
     
+  def is_clear(self):
+    """ Return true if all the attributes are at the defaults/unset """
+    
+    return (self.foreground == None and 
+        self.background == None and 
+        self.bold == False and 
+        self.italic == False and 
+        self.underline == False and 
+        self.strikethrough == False)
+    
   def from_gtk_source_style(self, gtkStyle):
   
     self.background = gtkStyle.props.background
@@ -146,7 +156,6 @@ class GUI:
     self.dictAllStyles = collections.OrderedDict()
     
     languages = self.languageManager.get_language_ids()
-    languages.sort()
 
     self.geditApp = geditApp
     self.geditView = geditApp.get_default().get_active_window().get_active_view()
@@ -192,13 +201,20 @@ class GUI:
     self.liststoreLanguages.append(['  Default styles'])
     self.langMapNameToId['  Default styles'] = 'def'
     
+    langs = []
+    
     for thisLanguage in languages:
       langName = self.languageManager.get_language(thisLanguage).get_name()
       self.langMapNameToId[langName] = thisLanguage
       
       if langName != 'Defaults':
-        self.liststoreLanguages.append([langName])
-
+        langs.append(langName)
+        
+    langs.sort(key=lambda y: y.lower())
+    
+    for langName in langs:
+      self.liststoreLanguages.append([langName]);
+        
     renderer_text = Gtk.CellRendererText()
     self.comboboxLanguages.pack_start(renderer_text, True)
     self.comboboxLanguages.connect('changed', self.on_language_selected)
@@ -231,16 +247,44 @@ class GUI:
 
     outFile = None
 
-    if os.access(inFile, os.W_OK) and (str(os.path.dirname(inFile)) != tempDirectory):
+    # check to see if they choose a new ID or Name. Create a new file if they did.
+    
+    nameOrIdChange = False
+    
+    if (self.currentScheme.get_name() != self.entryName.get_text() or
+        self.currentScheme.get_id()   != self.entryId.get_text()):
+      # make sure the new name/id does not conflict with one that exists already
+      
+      schemeIds = self.schemeManager.get_scheme_ids()
+
+      for thisSchemeId in schemeIds:
+        if self.entryId.get_text() == thisSchemeId or self.entryName.get_text() == self.schemeManager.get_scheme(thisSchemeId).get_name():
+
+          text = '<span weight="bold" size="larger">There was a problem saving the scheme</span>' \
+            '\n\nYou have choosen to create a new scheme' \
+            '\nbut the Name or ID you are using is being used already.' \
+            '\n\nPlease be sure to choose a Name and ID that are not already in use.\n'
+          message_dialog(Gtk.MessageType.ERROR, text, parent=self.window,
+            buttons=Gtk.ButtonsType.NONE,
+            additional_buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
+
+          return
+
+      nameOrIdChange = True
+    
+    # if the file name or ID did not change, and they are using a local file, save it there
+    if not nameOrIdChange and os.access(inFile, os.W_OK) and (str(os.path.dirname(inFile)) != tempDirectory):
       outFile = inFile
+      
+    # else, create a new file
     else:
       possibleDirs = self.schemeManager.get_search_path()
 
       # attempt to save to ~/.local/share/gedit/styles/
       thisDir = os.path.join(GLib.get_user_data_dir(), "gedit", "styles")
-
+      
       if thisDir in possibleDirs:
-        if os.path.isdir(thisDir):
+        if not os.path.isdir(thisDir):
           try:
             os.makedirs(thisDir)
           except:
@@ -266,9 +310,10 @@ class GUI:
           if (os.access(thisDir, os.W_OK)):
             outFile = os.path.join(thisDir, self.entryId.get_text() + '.xml')
             break
-
+            
     if outFile:
 
+      # make sure the name/ID to not refer to a system scheme that is not writable
       if inFile != outFile:
 
         schemeIds = self.schemeManager.get_scheme_ids()
@@ -277,7 +322,7 @@ class GUI:
           if self.entryId.get_text() == thisSchemeId or self.entryName.get_text() == self.schemeManager.get_scheme(thisSchemeId).get_name():
 
             text = '<span weight="bold" size="larger">There was a problem saving the scheme</span>' \
-              '\n\nYou not have permission to overwrite the scheme you have choosen.' \
+              '\n\nYou do not have permission to overwrite the scheme you have choosen.' \
               '\nInstead a copy will be created.' \
               '\n\nPlease be sure to choose a Name and ID that are not already in use.\n'
             message_dialog(Gtk.MessageType.ERROR, text, parent=self.window,
@@ -286,12 +331,13 @@ class GUI:
 
             return
 
+      # write the file. complain if it fails to save
       if not self.write_scheme(outFile, self.entryId.get_text(), self.entryName.get_text()):
         message_dialog(Gtk.MessageType.ERROR, 'Error saving theme',
           parent=self.window, buttons=Gtk.ButtonsType.NONE,
           additional_buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
+          
       else:
-
         self.schemeManager.force_rescan()
         updatedScheme = self.schemeManager.get_scheme(self.entryId.get_text())
 
@@ -370,11 +416,12 @@ class GUI:
     styleElements = xmlTree.findall('style')
     
     self.dictAllStyles.clear()
-    
     for styleElement in styleElements:
       thisStyle = self.currentScheme.get_style(styleElement.attrib['name'])
       styleProps = Props()
+      
       styleProps.from_gtk_source_style(thisStyle)
+      
       self.dictAllStyles[styleElement.attrib['name']] = styleProps;
             
     self.sourceBuffer.set_style_scheme(self.currentScheme);
@@ -387,6 +434,7 @@ class GUI:
     return True
     
   def clear_and_disable_style_buttons(self):
+
     self.colorbuttonForeground.set_color(self.colorBlack)
     self.colorbuttonBackground.set_color(self.colorBlack)
     self.colorbuttonForeground.set_sensitive(False)
@@ -464,25 +512,65 @@ class GUI:
       
   def on_background_toggled(self, param):
     
+    # user is enabling color selection
     if param.get_active():
       self.colorbuttonBackground.set_sensitive(True)
       self.colorbuttonBackground.activate()
+      
+      self.resetButton.set_sensitive(True)
+      
+    # user is disabling color selection
     else:
       self.colorbuttonBackground.set_sensitive(False)
-      self.dictAllStyles[self.selectedStyleId].background = None;
+      
+      try:
+        self.dictAllStyles[self.selectedStyleId].background = None;
+        
+        self.clear_style_if_empty(self.selectedStyleId)
+          
+      except:
+        pass
+
       self.update_sample_view()
       
   def on_foreground_toggled(self, param):
     
+    # user is enabling color selection
     if param.get_active():
       self.colorbuttonForeground.set_sensitive(True)
       self.colorbuttonForeground.activate()
+
+      self.resetButton.set_sensitive(True)
+      
+    # user is disabling color selection
     else:
       self.colorbuttonForeground.set_sensitive(False)
-      self.dictAllStyles[self.selectedStyleId].foreground = None;
+      
+      try:
+        self.dictAllStyles[self.selectedStyleId].foreground = None;
+        self.clear_style_if_empty(self.selectedStyleId)
+      except:
+        pass
+        
       self.update_sample_view()
   
+  def clear_style_if_empty(self, styleId):
+    """ Check to see if there are no attribtes set for a style. If so disable the
+      "Clear" button and remove the style entry from the schema file.
+    """
+    
+    if styleId not in self.dictAllStyles:
+      return
+
+    if (self.dictAllStyles[self.selectedStyleId].is_clear()):
+      del self.dictAllStyles[self.selectedStyleId]
+      self.clear_and_disable_style_buttons()
+  
+  
   def on_style_changed(self, data):
+    """ Handles button clicks for foreground color, background color, 
+      bold, italic, underline, or strikethrough.
+    """
         
     if self.selectedStyleId not in self.dictAllStyles:
       self.dictAllStyles[self.selectedStyleId] = Props()
@@ -510,6 +598,14 @@ class GUI:
     
     elif data == self.togglebuttonStrikethrough:
       self.dictAllStyles[self.selectedStyleId].strikethrough = data.get_active()
+    
+    # make sure the "Clear" button is enabled if something gets turned on
+    try:
+      if data.get_active() == True:
+        self.resetButton.set_sensitive(True)
+    except: pass
+    
+    self.clear_style_if_empty(self.selectedStyleId)
     
     self.update_sample_view()
     
@@ -590,11 +686,12 @@ class GUI:
       
       # remove the language namespace thing from the style name
       removeLen = len(self.selectedLanguageId) + 1
-    
+      
       thisLanguage = self.languageManager.get_language(self.selectedLanguageId)
-
+      
       if thisLanguage != None:
-        styleIds = thisLanguage.get_style_ids()
+      
+        styleIds = thisLanguage.get_style_ids() # TODO: why is 'gtk-doc.lang' throwing a warning?
         
         styleIds.sort() # make the styles list alphabetical
         
@@ -604,12 +701,14 @@ class GUI:
         
         for styleId in styleIds:
           self.liststoreStyles.append([styleId[removeLen:]])
-            
+      
       # select the first style in the list
       treeIter = self.treeviewStyles.get_model().get_iter_first()
-      self.treeviewStylesSelection.select_iter(treeIter)
-      model = self.treeviewStyles.get_model()
-      self.selectedStyleId = model[treeIter][0]
+      
+      if treeIter != None:  # make sure the list is not empty since some languages have no styles
+        self.treeviewStylesSelection.select_iter(treeIter)
+        model = self.treeviewStyles.get_model()
+        self.selectedStyleId = model[treeIter][0]
       
       # update the sample view
       if self.selectedLanguageId in samples:
@@ -624,6 +723,7 @@ class GUI:
         self.sourceBuffer.set_language(self.defaultLanguage);
         self.sourceBuffer.set_text(samples[self.defaultLanguageId])
         self.labelSample.set_text(self.defaultLanguageName + ' sample')
+
 
 
 def message_dialog(dialog_type, shortMsg, longMsg=None, parent=None,
