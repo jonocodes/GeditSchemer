@@ -271,46 +271,32 @@ class GUI:
           return
 
       nameOrIdChange = True
-    
+
+  
+    # attempt to save to ~/.local/share/gedit/styles/
+    stylesDir = os.path.join(GLib.get_user_data_dir(), "gedit", "styles")
+      
     # if the file name or ID did not change, and they are using a local file, save it there
-    if not nameOrIdChange and os.access(inFile, os.W_OK) and (str(os.path.dirname(inFile)) != tempDirectory):
+    if (not nameOrIdChange and
+        os.access(inFile, os.W_OK) and
+        os.path.dirname(inFile) == stylesDir and
+        (str(os.path.dirname(inFile)) != tempDirectory)):
+
       outFile = inFile
       
-    # else, create a new file
+    # else, designate a new file
     else:
-      possibleDirs = self.schemeManager.get_search_path()
-
-      # attempt to save to ~/.local/share/gedit/styles/
-      thisDir = os.path.join(GLib.get_user_data_dir(), "gedit", "styles")
       
-      if thisDir in possibleDirs:
-        if not os.path.isdir(thisDir):
-          try:
-            os.makedirs(thisDir)
-          except:
-            pass
+      if not os.path.isdir(stylesDir):
+        try:
+          os.makedirs(stylesDir)
+        except:
+          pass
 
-        if (os.access(thisDir, os.W_OK)):
-          outFile = os.path.join(thisDir, self.entryId.get_text() + '.xml')
-          
-      # if we cant save it there, save it where ever we have permission to save it
-      if not outFile:
-        for thisDir in possibleDirs:
+      if (os.access(stylesDir, os.W_OK)):
+        outFile = os.path.join(stylesDir, self.entryId.get_text() + '.xml')
 
-          if thisDir == tempDirectory:
-            continue
 
-          # create the directory if it does not exist
-          if not os.path.isdir(thisDir):
-            try:
-              os.makedirs(thisDir)
-            except:
-              pass
-
-          if (os.access(thisDir, os.W_OK)):
-            outFile = os.path.join(thisDir, self.entryId.get_text() + '.xml')
-            break
-            
     if outFile:
 
       # make sure the name/ID to not refer to a system scheme that is not writable
