@@ -566,12 +566,12 @@ class GUI:
     if data == self.colorbuttonBackground:
       color = data.get_color()
       self.dictAllStyles[self.selectedStyleId].background = ('#%02x%02x%02x' %
-        (color.red * cScale, color.green * cScale, color.blue * cScale))
+        (int(round(color.red * cScale)), int(round(color.green * cScale)), int(round(color.blue * cScale))))
     
     elif data == self.colorbuttonForeground:
       color = data.get_color()
       self.dictAllStyles[self.selectedStyleId].foreground = ('#%02x%02x%02x' %
-        (color.red * cScale, color.green * cScale, color.blue * cScale))
+        (int(round(color.red * cScale)), int(round(color.green * cScale)), int(round(color.blue * cScale))))
     
     elif data == self.togglebuttonBold:
       self.dictAllStyles[self.selectedStyleId].bold = data.get_active()
